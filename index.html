@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Arrow Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 5vw;
+      text-align: center;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      user-select: none;
+    }
+
+    #arrow {
+      font-size: min(40vw, 300px);
+      margin-bottom: 4vw;
+      line-height: 1;
+      transition: transform 0.3s;
+    }
+
+    .green {
+      color: #0f0;
+    }
+
+    .red {
+      color: #f44;
+    }
+
+    .yellow {
+      color: yellow;
+    }
+
+    .dodgerblue {
+      color: dodgerblue;
+    }
+
+    .pink {
+      color: pink;
+    }
+
+    #message {
+      font-size: min(6vw, 24px);
+      margin: 1vw 0;
+    }
+
+    #score, #highScore, #timer {
+      font-size: min(5vw, 20px);
+      margin: 0.5vw 0;
+    }
+
+    button {
+      padding: min(3vw, 15px) min(6vw, 30px);
+      font-size: min(5vw, 18px);
+      margin-top: 3vw;
+      border: none;
+      border-radius: 10px;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      width: 100%;
+      max-width: 100%;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #666;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 3vw;
+      margin-top: 5vw;
+      width: 100%;
+    }
+
+    .control-button {
+      background: #333;
+      color: white;
+      font-size: min(12vw, 36px);
+      border: 2px solid #555;
+      border-radius: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 1 / 1;
+      width: 100%;
+      min-height: 12vw;
+      user-select: none;
+      transition: background-color 0.2s;
+    }
+
+    .control-button:active {
+      background: #666;
+    }
+
+    .hidden {
+      visibility: hidden;
+    }
+
+    
+  </style>
+</head>
+<body>
+
+  <div id="instructions" style="font-weight:bold;">
+    🟩 Green, 🟨 Yellow → Same | 🟥 Red, 🟦 Blue, 🩷 Pink → Opposite<br>
+    <em>⚠️ Every time Pink appears, rules flip!</em>
+  </div>
+
+  <div id="arrow" class="green">↑</div>
+  <div id="message">Press the correct key!</div>
+  <div id="score">Score: 0</div>
+  <div id="highScore">High Score: 0</div>
+  <div id="timer">⏱️ Time left: —</div>
+
+  <div style="display: flex; gap: 1vw; width: 100%; justify-content: center; margin-top: -3vw;">
+  <button onclick="startGame()">🔁 Restart</button>
+  <button onclick="toggleSound()" id="soundToggle">🔊 Sound: ON</button>
+</div>
+
+
+  <div class="controls">
+    <div></div>
+    <div class="control-button" onclick="handleInput('ArrowUp', 'button')">↑</div>
+    <div></div>
+    <div class="control-button" onclick="handleInput('ArrowLeft', 'button')">←</div>
+    <div class="control-button hidden"></div>
+    <div class="control-button" onclick="handleInput('ArrowRight', 'button')">→</div>
+    <div></div>
+    <div class="control-button" onclick="handleInput('ArrowDown', 'button')">↓</div>
+    <div></div>
+  </div>
+
+  <script>
+    const directions = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+    const arrows = {
+      ArrowUp: '↑',
+      ArrowDown: '↓',
+      ArrowLeft: '←',
+      ArrowRight: '→'
+    };
+    const opposites = {
+      ArrowUp: 'ArrowDown',
+      ArrowDown: 'ArrowUp',
+      ArrowLeft: 'ArrowRight',
+      ArrowRight: 'ArrowLeft'
+    };
+
+    let currentDirection = '';
+    let currentColor = '';
+    let previousDirection = '';
+    let gameOver = false;
+    let score = 0;
+    let highScore = 0;
+    let timerMs = 0;
+    let timerInterval;
+    let gameStarted = false;
+    let soundOn = true;
+    let flipped = false;
+    let baseTime = 1000;
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSuccessSound() {
+      if (!soundOn) return;
+      const oscillator = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      oscillator.connect(gain);
+      gain.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.2);
+    }
+
+    function playFailSound() {
+      if (!soundOn) return;
+      const oscillator = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      oscillator.type = 'square';
+      oscillator.frequency.setValueAtTime(110, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      oscillator.connect(gain);
+      gain.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.5);
+    }
+
+    function vibrate(ms = 200) {
+      if ('vibrate' in navigator) {
+        navigator.vibrate(ms);
+      }
+    }
+
+    function getRandomDifferentDirection() {
+      let newDirection;
+      do {
+        newDirection = directions[Math.floor(Math.random() * directions.length)];
+      } while (newDirection === previousDirection);
+      return newDirection;
+    }
+
+    function getRandomColor() {
+      const colors = ['green', 'red', 'yellow', 'dodgerblue', 'pink'];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    function updateTimerDisplay() {
+      document.getElementById('timer').textContent = `⏱️ Time left: ${timerMs} ms`;
+    }
+
+    function startTimer(durationMs) {
+      clearInterval(timerInterval);
+      timerMs = durationMs;
+      updateTimerDisplay();
+      const startTime = performance.now();
+
+      timerInterval = setInterval(() => {
+        const elapsed = performance.now() - startTime;
+        const remaining = Math.max(0, Math.round(durationMs - elapsed));
+        timerMs = remaining;
+        updateTimerDisplay();
+
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+          endGame("⏱️ Time's up! Game Over!");
+        }
+      }, 50);
+    }
+
+    function showNewArrow() {
+      previousDirection = currentDirection;
+      currentDirection = getRandomDifferentDirection();
+      currentColor = getRandomColor();
+
+      // Flip direction rules every time pink appears
+      if (currentColor === 'pink') {
+        flipped = !flipped;
+        flashFlipMessage();
+      }
+
+      const arrowDiv = document.getElementById('arrow');
+      arrowDiv.textContent = arrows[currentDirection];
+      arrowDiv.className = currentColor;
+
+      if (!gameStarted) {
+        document.getElementById('timer').textContent = "⏱️ Time left: —";
+      }
+
+      // Lower base time by 2ms per arrow, with a minimum of 300ms
+      baseTime = Math.max(300, baseTime - 2);
+    }
+
+    function updateHighScore() {
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('highScore', highScore);
+      }
+      document.getElementById('highScore').textContent = `High Score: ${highScore}`;
+    }
+
+    function startGame() {
+  score = 0;
+  gameOver = false;
+  gameStarted = false;
+  clearInterval(timerInterval);
+  currentDirection = '';
+  previousDirection = '';
+  flipped = false;
+  baseTime = 1000;
+
+  document.getElementById('score').textContent = 'Score: 0';
+  document.getElementById('message').textContent = 'Press the correct key!';
+  document.getElementById('timer').textContent = "⏱️ Time left: —";
+  updateHighScore();
+  showNewArrow();
+}
+
+    function endGame(message) {
+      gameOver = true;
+      clearInterval(timerInterval);
+      playFailSound();
+      vibrate();
+      document.getElementById('message').textContent = message;
+    }
+
+    function handleInput(inputKey, inputType = 'keyboard') {
+      if (gameOver) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      if (!gameStarted) {
+        gameStarted = true;
+      }
+
+      const inputTime = inputType === 'keyboard' ? baseTime : baseTime + 250;
+      startTimer(inputTime);
+
+      const sameDirectionColors = ['green', 'yellow', 'pink'];
+      let useSameDirection = sameDirectionColors.includes(currentColor);
+
+      if (flipped) {
+        useSameDirection = !useSameDirection;
+      }
+
+      const expectedKey = useSameDirection ? currentDirection : opposites[currentDirection];
+
+      if (inputKey === expectedKey) {
+        score++;
+        document.getElementById('score').textContent = 'Score: ' + score;
+        updateHighScore();
+        playSuccessSound();
+        showNewArrow();
+      } else {
+        endGame('❌ Wrong key! Game Over!');
+      }
+    }
+
+    function toggleSound() {
+      soundOn = !soundOn;
+      document.getElementById('soundToggle').textContent = soundOn ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+    }
+
+    function flashFlipMessage() {
+  const messageDiv = document.getElementById('message');
+  const originalText = messageDiv.textContent;
+  messageDiv.textContent = '🔁 Direction Rules Flipped!';
+  setTimeout(() => {
+    if (!gameOver) {
+      messageDiv.textContent = 'Press the correct key!';
+    }
+  }, 1000);
+}
+
+    // Prevent arrow keys from scrolling
+    window.addEventListener("keydown", function(e) {
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    document.addEventListener('keydown', (e) => {
+      handleInput(e.key, 'keyboard');
+    });
+
+    window.onload = () => {
+      const savedHighScore = localStorage.getItem('highScore');
+      if (savedHighScore) highScore = parseInt(savedHighScore, 10);
+      updateHighScore();
+      startGame();
+    };
+  </script>
+
+</body>
+</html>
