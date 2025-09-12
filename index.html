@@ -125,18 +125,19 @@
     <em>⚠️ Every time Pink appears, rules flip!</em>
   </div>
 
-  <div id="arrow" class="green">↑</div>
+  
   <div id="message">Press the correct key!</div>
   <div id="score">Score: 0</div>
   <div id="highScore">High Score: 0</div>
   <div id="timer">⏱️ Time left: —</div>
 
-  <div style="display: flex; gap: 1vw; width: 100%; justify-content: center; margin-top: -3vw;">
-  <button onclick="startGame()">🔁 Restart</button>
-  <button onclick="toggleSound()" id="soundToggle">🔊 Sound: ON</button>
-</div>
+	<div style="display: flex; gap: 1vw; width: 100%; justify-content: center; margin-top: -3vw;">
+		<button onclick="startGame()">🔁 Restart</button>
+		<button onclick="toggleSound()" id="soundToggle">🔊 Sound: ON</button>
+	</div>
 
-
+	<div id="arrow" class="green">↑</div>
+	
   <div class="controls">
     <div></div>
     <div class="control-button" onclick="handleInput('ArrowUp', 'button')">↑</div>
