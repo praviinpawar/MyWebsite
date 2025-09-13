@@ -77,15 +77,13 @@
 	  border-radius: 8px;
 	  background-color: #444;
 	  color: white;
-	  cursor: pointer; /* Make sure this is here */
+	  cursor: pointer;
 	  width: auto;
 	  min-width: 120px;
 	  transition: background-color 0.3s;
-	  z-index: 1; /* Ensure it's above any overlapping elements */
+	  z-index: 1;
 	  position: relative;
 	}
-
-
 
     button:hover {
       background-color: #666;
@@ -124,49 +122,37 @@
     .hidden {
       visibility: hidden;
     }
-
-    
   </style>
 </head>
 <body style="padding-top: 1vw">
 
   <div id="message">❌ Wrong key! Game Over!</div>
-  <form style="
-    font-size: large;
-    margin-bottom: 0.5vw;
-">
-  <label>
-    <input type="radio" name="difficulty" value="easy" checked=""> Easy [For Attention]</label>
-  
-  <label>
-    <input type="radio" name="difficulty" value="hard"> Hard [For Attention &amp; Memory]
-</label>
-</form>
+  <form style="font-size: large; margin-bottom: 0.5vw;">
+    <label>
+      <input type="radio" name="difficulty" value="easy" checked> Easy [For Attention]
+    </label>
+    <label>
+      <input type="radio" name="difficulty" value="hard"> Hard [For Attention &amp; Memory]
+    </label>
+  </form>
+
   <div id="instructions" style="font-weight:bold;width: max-content;">
-    🟩 Green, 🟨 Yellow → Same | 🟥 Red, 🟦 Blue, 💗 Pink → Opposite<br>
-    <br><em>⚠️ Every time Pink appears, rules flip!</em>
+    <!-- Instructions updated dynamically -->
   </div>
 
-  
-  
   <div style="display: flex;gap: 1vw;width: 100%;justify-content: center;margin-top: 0.5vw;">
-		
-		<div id="score">Score: 0</div><div id="highScore">High Score: 68</div><div id="timer" style="margin-top: 0.2vw;">⏱️ Time left: 998 ms</div>
-	</div>
+    <div id="score">Score: 0</div>
+    <div id="highScore">High Score: 0</div>
+    <div id="timer" style="margin-top: 0.2vw;">⏱️ Time left: —</div>
+  </div>
+
+  <div class="button-group">
+    <button onclick="startGame()">🔁 Restart</button>
+    <button onclick="toggleSound()" id="soundToggle">🔊 Sound: ON</button>
+  </div>
+
+  <div id="arrow" class="green" style="margin-top: -1vw;">↓</div>
   
-  
-
-	<div class="button-group">
-	  <button onclick="startGame()">🔁 Restart</button>
-	  <button onclick="toggleSound()" id="soundToggle">🔊 Sound: ON</button>
-	</div>
-
-
-
-	<div id="arrow" class="green" style="
-    margin-top: -1vw;
-">↓</div>
-	
   <div class="controls" style="display: none;">
     <div></div>
     <div class="control-button" onclick="handleInput('ArrowUp', 'button')">↑</div>
@@ -179,231 +165,293 @@
     <div></div>
   </div>
 
-  <script>
-    const directions = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
-    const arrows = {
-      ArrowUp: '↑',
-      ArrowDown: '↓',
-      ArrowLeft: '←',
-      ArrowRight: '→'
-    };
-    const opposites = {
-      ArrowUp: 'ArrowDown',
-      ArrowDown: 'ArrowUp',
-      ArrowLeft: 'ArrowRight',
-      ArrowRight: 'ArrowLeft'
-    };
+<script>
+  const directions = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+  const arrows = {
+    ArrowUp: '↑',
+    ArrowDown: '↓',
+    ArrowLeft: '←',
+    ArrowRight: '→'
+  };
+  const opposites = {
+    ArrowUp: 'ArrowDown',
+    ArrowDown: 'ArrowUp',
+    ArrowLeft: 'ArrowRight',
+    ArrowRight: 'ArrowLeft'
+  };
 
-    let currentDirection = '';
-    let currentColor = '';
-    let previousDirection = '';
-    let gameOver = false;
-    let score = 0;
-    let highScore = 0;
-    let timerMs = 0;
-    let timerInterval;
-    let gameStarted = false;
-    let soundOn = true;
-    let flipped = false;
-    let baseTime = 1000;
+  // Colors for modes
+  const easyColors = ['green', 'red'];
+  const hardColors = ['green', 'red', 'yellow', 'dodgerblue', 'pink'];
 
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  let currentDirection = '';
+  let currentColor = '';
+  let previousDirection = '';
+  let gameOver = false;
+  let score = 0;
+  let highScore = 0;
+  let timerMs = 0;
+  let timerInterval;
+  let gameStarted = false;
+  let soundOn = true;
+  let flipped = false;
+  let baseTime = 1000;
 
-    function playSuccessSound() {
-      if (!soundOn) return;
-      const oscillator = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-      oscillator.connect(gain);
-      gain.connect(audioCtx.destination);
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.2);
+  let difficulty = 'easy'; // default
+
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playSuccessSound() {
+    if (!soundOn) return;
+    const oscillator = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    oscillator.connect(gain);
+    gain.connect(audioCtx.destination);
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.2);
+  }
+
+  function playFailSound() {
+    if (!soundOn) return;
+    const oscillator = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(110, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    oscillator.connect(gain);
+    gain.connect(audioCtx.destination);
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.5);
+  }
+
+  function vibrate(ms = 200) {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(ms);
+    }
+  }
+
+  function getRandomDifferentDirection() {
+    let newDirection;
+    do {
+      newDirection = directions[Math.floor(Math.random() * directions.length)];
+    } while (newDirection === previousDirection);
+    return newDirection;
+  }
+
+  function getRandomColor() {
+    if (difficulty === 'easy') {
+      return easyColors[Math.floor(Math.random() * easyColors.length)];
+    } else {
+      return hardColors[Math.floor(Math.random() * hardColors.length)];
+    }
+  }
+
+  function updateTimerDisplay() {
+    document.getElementById('timer').textContent = `⏱️ Time left: ${timerMs} ms`;
+  }
+
+	function startTimer(durationMs) {
+	  clearInterval(timerInterval);
+	  timerMs = durationMs;
+	  updateTimerDisplay();
+
+	  const startTime = performance.now();
+
+	  timerInterval = setInterval(() => {
+		const elapsed = performance.now() - startTime;
+		const remaining = Math.max(0, Math.round(durationMs - elapsed));
+		timerMs = remaining;
+		updateTimerDisplay();
+
+		if (remaining <= 0) {
+		  clearInterval(timerInterval);
+		  endGame("⏱️ Time's up! Game Over!");
+		}
+	  }, 50);
+	}
+
+	function endGame(message) {
+	  gameOver = true;
+	  clearInterval(timerInterval);
+	  playFailSound();
+	  vibrate();
+	  document.getElementById('message').textContent = message;
+
+	  // ✅ Reset the timer display on game over
+	  document.getElementById('timer').textContent = `⏱️ Time left: —`;
+	}
+
+
+  function showNewArrow() {
+    previousDirection = currentDirection;
+    currentDirection = getRandomDifferentDirection();
+    currentColor = getRandomColor();
+
+    // Flip direction rules every time pink appears (only in hard mode)
+    if (difficulty === 'hard' && currentColor === 'pink') {
+      flipped = !flipped;
+      flashFlipMessage();
     }
 
-    function playFailSound() {
-      if (!soundOn) return;
-      const oscillator = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      oscillator.type = 'square';
-      oscillator.frequency.setValueAtTime(110, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      oscillator.connect(gain);
-      gain.connect(audioCtx.destination);
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.5);
+    // Set arrow and color
+    const arrowDiv = document.getElementById('arrow');
+    arrowDiv.textContent = arrows[currentDirection];
+
+    // Remove all color classes first
+    arrowDiv.className = '';
+    arrowDiv.classList.add(currentColor);
+
+    if (!gameStarted) {
+      document.getElementById('timer').textContent = "⏱️ Time left: —";
+    }
+  }
+
+  function updateHighScore() {
+    const key = `highScore_${difficulty}`;
+    const storedHighScore = localStorage.getItem(key);
+    if (storedHighScore) {
+      highScore = parseInt(storedHighScore, 10);
+    } else {
+      highScore = 0;
     }
 
-    function vibrate(ms = 200) {
-      if ('vibrate' in navigator) {
-        navigator.vibrate(ms);
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem(key, highScore);
+    }
+    document.getElementById('highScore').textContent = `High Score: ${highScore}`;
+  }
+
+  function startGame() {
+    score = 0;
+    gameOver = false;
+    gameStarted = false;
+    clearInterval(timerInterval);
+    currentDirection = '';
+    previousDirection = '';
+    flipped = false;
+    baseTime = 1000;
+
+    document.getElementById('score').textContent = 'Score: 0';
+    document.getElementById('message').textContent = 'Press the correct key!';
+    document.getElementById('timer').textContent = "⏱️ Time left: —";
+
+    updateHighScore();
+    updateInstructions();
+    showNewArrow();
+  }
+
+  function handleInput(inputKey, inputType = 'keyboard') {
+    if (gameOver) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    if (!gameStarted) {
+      gameStarted = true;
+    }
+
+    // Timer time logic
+    let inputTime;
+    if (difficulty === 'easy') {
+      inputTime = 1000; // fixed time in easy mode
+    } else {
+      inputTime = Math.max(300, baseTime - 2); // reduce by 2ms per arrow in hard mode
+      baseTime = inputTime; // update baseTime
+    }
+
+    startTimer(inputTime);
+
+    // Define sameDirectionColors for both modes
+    let sameDirectionColors;
+
+    if (difficulty === 'easy') {
+      sameDirectionColors = ['green']; // green = same direction
+    } else {
+      sameDirectionColors = ['green', 'yellow', 'pink'];
+    }
+
+    let useSameDirection = sameDirectionColors.includes(currentColor);
+
+    if (difficulty === 'hard' && flipped) {
+      useSameDirection = !useSameDirection;
+    }
+
+    const expectedKey = useSameDirection ? currentDirection : opposites[currentDirection];
+
+    if (inputKey === expectedKey) {
+      score++;
+      document.getElementById('score').textContent = 'Score: ' + score;
+      updateHighScore();
+      playSuccessSound();
+      showNewArrow();
+    } else {
+      endGame('❌ Wrong key! Game Over!');
+    }
+  }
+
+  function toggleSound() {
+    soundOn = !soundOn;
+    document.getElementById('soundToggle').textContent = soundOn ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+  }
+
+  function flashFlipMessage() {
+    const messageDiv = document.getElementById('message');
+    const originalText = messageDiv.textContent;
+    messageDiv.textContent = '🔁 Direction Rules Flipped!';
+    setTimeout(() => {
+      if (!gameOver) {
+        messageDiv.textContent = 'Press the correct key!';
       }
+    }, 1000);
+  }
+
+  // Update instructions based on difficulty
+  function updateInstructions() {
+    const instructionsDiv = document.getElementById('instructions');
+    if (difficulty === 'easy') {
+      instructionsDiv.innerHTML = `🟩 Green → Same direction | 🟥 Red → Opposite direction<br><br>`;
+    } else {
+      instructionsDiv.innerHTML = `🟩 Green, 🟨 Yellow → Same | 🟥 Red, 🟦 Blue, 💗 Pink → Opposite<br><br><em>⚠️ Every time Pink appears, rules flip!</em>`;
     }
+  }
 
-    function getRandomDifferentDirection() {
-      let newDirection;
-      do {
-        newDirection = directions[Math.floor(Math.random() * directions.length)];
-      } while (newDirection === previousDirection);
-      return newDirection;
+  // Prevent arrow keys from scrolling
+  window.addEventListener("keydown", function(e) {
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+      e.preventDefault();
     }
+  }, { passive: false });
 
-    function getRandomColor() {
-      const colors = ['green', 'red', 'yellow', 'dodgerblue', 'pink'];
-      return colors[Math.floor(Math.random() * colors.length)];
-    }
+  // Handle keyboard input
+  document.addEventListener('keydown', (e) => {
+    handleInput(e.key, 'keyboard');
+  });
 
-    function updateTimerDisplay() {
-      document.getElementById('timer').textContent = `⏱️ Time left: ${timerMs} ms`;
-    }
-
-    function startTimer(durationMs) {
-      clearInterval(timerInterval);
-      timerMs = durationMs;
-      updateTimerDisplay();
-      const startTime = performance.now();
-
-      timerInterval = setInterval(() => {
-        const elapsed = performance.now() - startTime;
-        const remaining = Math.max(0, Math.round(durationMs - elapsed));
-        timerMs = remaining;
-        updateTimerDisplay();
-
-        if (remaining <= 0) {
-          clearInterval(timerInterval);
-          endGame("⏱️ Time's up! Game Over!");
-        }
-      }, 50);
-    }
-
-    function showNewArrow() {
-      previousDirection = currentDirection;
-      currentDirection = getRandomDifferentDirection();
-      currentColor = getRandomColor();
-
-      // Flip direction rules every time pink appears
-      if (currentColor === 'pink') {
-        flipped = !flipped;
-        flashFlipMessage();
-      }
-
-      const arrowDiv = document.getElementById('arrow');
-      arrowDiv.textContent = arrows[currentDirection];
-      arrowDiv.className = currentColor;
-
-      if (!gameStarted) {
-        document.getElementById('timer').textContent = "⏱️ Time left: —";
-      }
-
-      // Lower base time by 2ms per arrow, with a minimum of 300ms
-      baseTime = Math.max(300, baseTime - 2);
-    }
-
-    function updateHighScore() {
-      if (score > highScore) {
-        highScore = score;
-        localStorage.setItem('highScore', highScore);
-      }
-      document.getElementById('highScore').textContent = `High Score: ${highScore}`;
-    }
-
-    function startGame() {
-  score = 0;
-  gameOver = false;
-  gameStarted = false;
-  clearInterval(timerInterval);
-  currentDirection = '';
-  previousDirection = '';
-  flipped = false;
-  baseTime = 1000;
-
-  document.getElementById('score').textContent = 'Score: 0';
-  document.getElementById('message').textContent = 'Press the correct key!';
-  document.getElementById('timer').textContent = "⏱️ Time left: —";
-  updateHighScore();
-  showNewArrow();
-}
-
-    function endGame(message) {
-      gameOver = true;
-      clearInterval(timerInterval);
-      playFailSound();
-      vibrate();
-      document.getElementById('message').textContent = message;
-    }
-
-    function handleInput(inputKey, inputType = 'keyboard') {
-      if (gameOver) return;
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-
-      if (!gameStarted) {
-        gameStarted = true;
-      }
-
-      const inputTime = inputType === 'keyboard' ? baseTime : baseTime + 250;
-      startTimer(inputTime);
-
-      const sameDirectionColors = ['green', 'yellow', 'pink'];
-      let useSameDirection = sameDirectionColors.includes(currentColor);
-
-      if (flipped) {
-        useSameDirection = !useSameDirection;
-      }
-
-      const expectedKey = useSameDirection ? currentDirection : opposites[currentDirection];
-
-      if (inputKey === expectedKey) {
-        score++;
-        document.getElementById('score').textContent = 'Score: ' + score;
-        updateHighScore();
-        playSuccessSound();
-        showNewArrow();
-      } else {
-        endGame('❌ Wrong key! Game Over!');
-      }
-    }
-
-    function toggleSound() {
-      soundOn = !soundOn;
-      document.getElementById('soundToggle').textContent = soundOn ? '🔊 Sound: ON' : '🔇 Sound: OFF';
-    }
-
-    function flashFlipMessage() {
-  const messageDiv = document.getElementById('message');
-  const originalText = messageDiv.textContent;
-  messageDiv.textContent = '🔁 Direction Rules Flipped!';
-  setTimeout(() => {
-    if (!gameOver) {
-      messageDiv.textContent = 'Press the correct key!';
-    }
-  }, 1000);
-}
-
-    // Prevent arrow keys from scrolling
-    window.addEventListener("keydown", function(e) {
-      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
-        e.preventDefault();
-      }
-    }, { passive: false });
-
-    document.addEventListener('keydown', (e) => {
-      handleInput(e.key, 'keyboard');
+  // Difficulty radio buttons event listener
+  document.querySelectorAll('input[name="difficulty"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      difficulty = e.target.value;
+      startGame();
     });
+  });
 
-    window.onload = () => {
-		if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){
-			document.getElementsByClassName('controls')[0].style.display = ''
-		  }else{
-			document.getElementsByClassName('controls')[0].style.display = 'none'
-		  }
-		const savedHighScore = localStorage.getItem('highScore');
-		if (savedHighScore) highScore = parseInt(savedHighScore, 10);
-		updateHighScore();
-		startGame();  
-    };
-  </script>
+  // On window load
+  window.onload = () => {
+    if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      document.getElementsByClassName('controls')[0].style.display = '';
+    } else {
+      document.getElementsByClassName('controls')[0].style.display = 'none';
+    }
 
+    // Initialize difficulty based on selected radio
+    const selected = document.querySelector('input[name="difficulty"]:checked');
+    if (selected) difficulty = selected.value;
+
+    startGame();
+  };
+</script>
 
 </body>
 </html>
