@@ -7,13 +7,13 @@
     * {
       box-sizing: border-box;
     }
-	
-	.button-group {
-	  display: flex;
-	  gap: 1vw;
-	  justify-content: center;
-	  z-index: 1;
-	}
+
+    .button-group {
+      display: flex;
+      gap: 1vw;
+      justify-content: center;
+      z-index: 1;
+    }
 
     body {
       font-family: Arial, sans-serif;
@@ -39,25 +39,11 @@
       transition: transform 0.3s;
     }
 
-    .green {
-      color: #0f0;
-    }
-
-    .red {
-      color: #f44;
-    }
-
-    .yellow {
-      color: yellow;
-    }
-
-    .dodgerblue {
-      color: dodgerblue;
-    }
-
-    .pink {
-      color: pink;
-    }
+    .green { color: #0f0; }
+    .red { color: #f44; }
+    .yellow { color: yellow; }
+    .dodgerblue { color: dodgerblue; }
+    .pink { color: pink; }
 
     #message {
       font-size: min(6vw, 24px);
@@ -70,20 +56,20 @@
     }
 
     button {
-	  padding: 0.5em 1em;
-	  font-size: 16px;
-	  margin-top: 1vw;
-	  border: none;
-	  border-radius: 8px;
-	  background-color: #444;
-	  color: white;
-	  cursor: pointer;
-	  width: auto;
-	  min-width: 120px;
-	  transition: background-color 0.3s;
-	  z-index: 1;
-	  position: relative;
-	}
+      padding: 0.5em 1em;
+      font-size: 16px;
+      margin-top: 1vw;
+      border: none;
+      border-radius: 8px;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      width: auto;
+      min-width: 120px;
+      transition: background-color 0.3s;
+      z-index: 1;
+      position: relative;
+    }
 
     button:hover {
       background-color: #666;
@@ -127,6 +113,8 @@
 <body style="padding-top: 1vw">
 
   <div id="message">❌ Wrong key! Game Over!</div>
+
+  <!-- Difficulty selection -->
   <form style="font-size: large; margin-bottom: 0.5vw;">
     <label>
       <input type="radio" name="difficulty" value="easy" checked> Easy [For Attention]
@@ -136,14 +124,27 @@
     </label>
   </form>
 
-  <div id="instructions" style="font-weight:bold;width: max-content;">
-    <!-- Instructions updated dynamically -->
-  </div>
+  
 
-  <div style="display: flex;gap: 1vw;width: 100%;justify-content: center;margin-top: 0.5vw;">
+  <div id="instructions" style="font-weight:bold;width: max-content;"></div>
+
+  <div style="display: flex;gap: 1vw;width: max-content;justify-content: center;margin-top: 0.5vw;">
     <div id="score">Score: 0</div>
     <div id="highScore">High Score: 0</div>
-    <div id="timer" style="margin-top: 0.2vw;">⏱️ Time left: —</div>
+    
+	<!-- ⏱️ Timer Dropdown (inline label + select) -->
+	  <div style="display: flex; align-items: center; gap: 0.5em; margin-top: -0.15vw;">
+		<label for="timerSelect" style="font-size: large;">⏱️ Timer (ms):</label>
+		<select id="timerSelect" onchange="updateBaseTime()" style="font-size: large; padding: 0.3em 0.5em;">
+		  <option value="2000">2000</option>
+		  <option value="1800">1800</option>
+		  <option value="1600">1600</option>
+		  <option value="1400" selected>1400</option>
+		  <option value="1200">1200</option>
+		  <option value="1000">1000</option>
+		</select>
+	  </div>
+	  <div id="timer" style="margin-top: 0.2vw;">⏱️ Time left: —</div>
   </div>
 
   <div class="button-group">
@@ -152,7 +153,7 @@
   </div>
 
   <div id="arrow" class="green" style="margin-top: -1vw;">↓</div>
-  
+
   <div class="controls" style="display: none;">
     <div></div>
     <div class="control-button" onclick="handleInput('ArrowUp', 'button')">↑</div>
@@ -180,7 +181,6 @@
     ArrowRight: 'ArrowLeft'
   };
 
-  // Colors for modes
   const easyColors = ['green', 'red'];
   const hardColors = ['green', 'red', 'yellow', 'dodgerblue', 'pink'];
 
@@ -196,8 +196,7 @@
   let soundOn = true;
   let flipped = false;
   let baseTime = 1000;
-
-  let difficulty = 'easy'; // default
+  let difficulty = 'easy';
 
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -242,65 +241,56 @@
   }
 
   function getRandomColor() {
-    if (difficulty === 'easy') {
-      return easyColors[Math.floor(Math.random() * easyColors.length)];
-    } else {
-      return hardColors[Math.floor(Math.random() * hardColors.length)];
-    }
+    return difficulty === 'easy' ?
+      easyColors[Math.floor(Math.random() * easyColors.length)] :
+      hardColors[Math.floor(Math.random() * hardColors.length)];
   }
 
   function updateTimerDisplay() {
     document.getElementById('timer').textContent = `⏱️ Time left: ${timerMs} ms`;
   }
 
-	function startTimer(durationMs) {
-	  clearInterval(timerInterval);
-	  timerMs = durationMs;
-	  updateTimerDisplay();
+  function startTimer(durationMs) {
+    clearInterval(timerInterval);
+    timerMs = durationMs;
+    updateTimerDisplay();
 
-	  const startTime = performance.now();
+    const startTime = performance.now();
 
-	  timerInterval = setInterval(() => {
-		const elapsed = performance.now() - startTime;
-		const remaining = Math.max(0, Math.round(durationMs - elapsed));
-		timerMs = remaining;
-		updateTimerDisplay();
+    timerInterval = setInterval(() => {
+      const elapsed = performance.now() - startTime;
+      const remaining = Math.max(0, Math.round(durationMs - elapsed));
+      timerMs = remaining;
+      updateTimerDisplay();
 
-		if (remaining <= 0) {
-		  clearInterval(timerInterval);
-		  endGame("⏱️ Time's up! Game Over!");
-		}
-	  }, 50);
-	}
+      if (remaining <= 0) {
+        clearInterval(timerInterval);
+        endGame("⏱️ Time's up! Game Over!");
+      }
+    }, 50);
+  }
 
-	function endGame(message) {
-	  gameOver = true;
-	  clearInterval(timerInterval);
-	  playFailSound();
-	  vibrate();
-	  document.getElementById('message').textContent = message;
-
-	  // ✅ Reset the timer display on game over
-	  document.getElementById('timer').textContent = `⏱️ Time left: —`;
-	}
-
+  function endGame(message) {
+    gameOver = true;
+    clearInterval(timerInterval);
+    playFailSound();
+    vibrate();
+    document.getElementById('message').textContent = message;
+    document.getElementById('timer').textContent = `⏱️ Time left: —`;
+  }
 
   function showNewArrow() {
     previousDirection = currentDirection;
     currentDirection = getRandomDifferentDirection();
     currentColor = getRandomColor();
 
-    // Flip direction rules every time pink appears (only in hard mode)
     if (difficulty === 'hard' && currentColor === 'pink') {
       flipped = !flipped;
       flashFlipMessage();
     }
 
-    // Set arrow and color
     const arrowDiv = document.getElementById('arrow');
     arrowDiv.textContent = arrows[currentDirection];
-
-    // Remove all color classes first
     arrowDiv.className = '';
     arrowDiv.classList.add(currentColor);
 
@@ -309,40 +299,42 @@
     }
   }
 
-  function updateHighScore() {
-    const key = `highScore_${difficulty}`;
-    const storedHighScore = localStorage.getItem(key);
-    if (storedHighScore) {
-      highScore = parseInt(storedHighScore, 10);
-    } else {
-      highScore = 0;
-    }
+	  function updateHighScore() {
+	  const key = `highScore_${difficulty}_${baseTime}`;
+	  const storedHighScore = localStorage.getItem(key);
+	  if (storedHighScore) {
+		highScore = parseInt(storedHighScore, 10);
+	  } else {
+		highScore = 0;
+	  }
 
-    if (score > highScore) {
-      highScore = score;
-      localStorage.setItem(key, highScore);
-    }
-    document.getElementById('highScore').textContent = `High Score: ${highScore}`;
-  }
+	  if (score > highScore) {
+		highScore = score;
+		localStorage.setItem(key, highScore);
+	  }
 
-  function startGame() {
-    score = 0;
-    gameOver = false;
-    gameStarted = false;
-    clearInterval(timerInterval);
-    currentDirection = '';
-    previousDirection = '';
-    flipped = false;
-    baseTime = 1000;
+	  document.getElementById('highScore').textContent = `High Score: ${highScore}`;
+	}
 
-    document.getElementById('score').textContent = 'Score: 0';
-    document.getElementById('message').textContent = 'Press the correct key!';
-    document.getElementById('timer').textContent = "⏱️ Time left: —";
 
-    updateHighScore();
-    updateInstructions();
-    showNewArrow();
-  }
+	  function startGame() {
+	  updateBaseTime(); // updates baseTime and high score
+	  score = 0;
+	  gameOver = false;
+	  gameStarted = false;
+	  clearInterval(timerInterval);
+	  currentDirection = '';
+	  previousDirection = '';
+	  flipped = false;
+
+	  document.getElementById('score').textContent = 'Score: 0';
+	  document.getElementById('message').textContent = 'Press the correct key!';
+	  document.getElementById('timer').textContent = "⏱️ Time left: —";
+
+	  updateInstructions();
+	  showNewArrow();
+	}
+
 
   function handleInput(inputKey, inputType = 'keyboard') {
     if (gameOver) return;
@@ -352,28 +344,16 @@
       gameStarted = true;
     }
 
-    // Timer time logic
-    let inputTime;
-    if (difficulty === 'easy') {
-      inputTime = 1000; // fixed time in easy mode
-    } else {
-      inputTime = Math.max(300, baseTime - 2); // reduce by 2ms per arrow in hard mode
-      baseTime = inputTime; // update baseTime
-    }
+    let inputTime = (difficulty === 'easy') ?
+      baseTime :
+      Math.max(300, baseTime -= 2);
 
     startTimer(inputTime);
 
-    // Define sameDirectionColors for both modes
-    let sameDirectionColors;
-
-    if (difficulty === 'easy') {
-      sameDirectionColors = ['green']; // green = same direction
-    } else {
-      sameDirectionColors = ['green', 'yellow', 'pink'];
-    }
+    const sameDirectionColors = (difficulty === 'easy') ?
+      ['green'] : ['green', 'yellow', 'pink'];
 
     let useSameDirection = sameDirectionColors.includes(currentColor);
-
     if (difficulty === 'hard' && flipped) {
       useSameDirection = !useSameDirection;
     }
@@ -398,7 +378,6 @@
 
   function flashFlipMessage() {
     const messageDiv = document.getElementById('message');
-    const originalText = messageDiv.textContent;
     messageDiv.textContent = '🔁 Direction Rules Flipped!';
     setTimeout(() => {
       if (!gameOver) {
@@ -407,7 +386,6 @@
     }, 1000);
   }
 
-  // Update instructions based on difficulty
   function updateInstructions() {
     const instructionsDiv = document.getElementById('instructions');
     if (difficulty === 'easy') {
@@ -417,19 +395,23 @@
     }
   }
 
-  // Prevent arrow keys from scrolling
+	  function updateBaseTime() {
+	  const dropdown = document.getElementById('timerSelect');
+	  baseTime = parseInt(dropdown.value, 10);
+	  updateHighScore(); // refresh score display when timer changes
+	}
+
+
   window.addEventListener("keydown", function(e) {
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
       e.preventDefault();
     }
   }, { passive: false });
 
-  // Handle keyboard input
   document.addEventListener('keydown', (e) => {
     handleInput(e.key, 'keyboard');
   });
 
-  // Difficulty radio buttons event listener
   document.querySelectorAll('input[name="difficulty"]').forEach(radio => {
     radio.addEventListener('change', (e) => {
       difficulty = e.target.value;
@@ -437,7 +419,6 @@
     });
   });
 
-  // On window load
   window.onload = () => {
     if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
       document.getElementsByClassName('controls')[0].style.display = '';
@@ -445,10 +426,10 @@
       document.getElementsByClassName('controls')[0].style.display = 'none';
     }
 
-    // Initialize difficulty based on selected radio
     const selected = document.querySelector('input[name="difficulty"]:checked');
     if (selected) difficulty = selected.value;
 
+    updateBaseTime();
     startGame();
   };
 </script>
