@@ -135,7 +135,7 @@
 	<!-- ⏱️ Timer Dropdown (inline label + select) -->
 	  <div style="display: flex; align-items: center; gap: 0.5em; margin-top: -0.15vw;">
 		<label for="timerSelect" style="font-size: large;">⏱️ Timer (ms):</label>
-		<select id="timerSelect" onchange="updateBaseTime()" style="font-size: large; padding: 0.3em 0.5em;">
+		<select id="timerSelect" onchange="startGame()" style="font-size: large; padding: 0.3em 0.5em;">
 		  <option value="2000">2000</option>
 		  <option value="1800">1800</option>
 		  <option value="1600">1600</option>
@@ -196,6 +196,7 @@
   let soundOn = true;
   let flipped = false;
   let baseTime = 1000;
+  let currentTime = 1000;
   let difficulty = 'easy';
 
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -318,8 +319,9 @@
 
 
 	  function startGame() {
-	  updateBaseTime(); // updates baseTime and high score
 	  score = 0;
+	  updateBaseTime(); // updates baseTime and high score
+	  
 	  gameOver = false;
 	  gameStarted = false;
 	  clearInterval(timerInterval);
@@ -343,10 +345,11 @@
     if (!gameStarted) {
       gameStarted = true;
     }
-
+	
+	
     let inputTime = (difficulty === 'easy') ?
-      baseTime :
-      Math.max(300, baseTime -= 2);
+      currentTime :
+      Math.max(300, currentTime -= 2);
 
     startTimer(inputTime);
 
@@ -398,6 +401,7 @@
 	  function updateBaseTime() {
 	  const dropdown = document.getElementById('timerSelect');
 	  baseTime = parseInt(dropdown.value, 10);
+	  currentTime = baseTime;
 	  updateHighScore(); // refresh score display when timer changes
 	}
 
